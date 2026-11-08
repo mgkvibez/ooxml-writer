@@ -22,6 +22,29 @@ The package is the source of truth.
 The property that makes it honest is testable in one line: **open a file, save it without edits, and every part must be
 byte-identical.** That test is in this repository.
 
+## What works today
+
+- Package: open a zip into named parts, read and replace one part, save, and diff two packages by part name. Every part
+  you did not touch is copied byte-for-byte, and a test proves it: a binary PNG and `[Content_Types].xml` survive an edit
+  unchanged.
+- Paragraphs: read a slide's text the way a person sees it, not the way the file stores it. `paragraphs(xml)` flattens
+  every `<a:r>` run into the paragraph's readable text while keeping each run's span; `find_paragraph` finds a phrase
+  split across runs; `replace_paragraph_text` and `set_first_matching_paragraph` change the text, keep the first run's
+  formatting, and empty the runs after it.
+
+### The trap this project exists for
+
+PowerPoint does not store `Hello world` as one string. It stores `Hello ` and `wor` and `ld` in three runs, because each
+run carries its own formatting. So `xml.replace("Hello world", ...)` finds nothing on a real slide, and a naive reader
+concludes the text is not there. Both operations must work on the paragraph's concatenated text while the write happens
+at run granularity. The tests pin this literally: `assert "Hello world" not in SLIDE` passes, and `find_paragraph` still
+finds it.
+
+Text is escaped on the way in (`<`, `>`, `&`), so an edit cannot corrupt the part, and padded text gets
+`xml:space="preserve"`. That detail shipped a real bug here: the writer added the attribute and the reader's regex no
+longer matched its own output, so the text read back empty. The padded-text test caught it; the reader now accepts
+attributes on `<a:t>`.
+
 ## Status
 
 **Stage 0: scaffolding.** `OoxmlPackage` opens a package, exposes parts, replaces one, and saves with untouched parts
