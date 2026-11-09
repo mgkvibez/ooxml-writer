@@ -49,8 +49,10 @@ attributes on `<a:t>`.
 
 **Stage 0: scaffolding.** `OoxmlPackage` opens a package, exposes parts, replaces one, and saves with untouched parts
 byte-identical. `replace_text_run` edits the nth `<a:t>` run of a slide and leaves the rest of the XML exactly as it was.
-Seven tests: round-trip identity, order preservation, targeted run replacement, missing-part refusal, malformed package
+18 tests: round-trip identity, order preservation, targeted run replacement, missing-part refusal, malformed package
 refusal, and `diff` naming changed parts.
+
+**Tests:** 18
 
 No schema validation, no shape or layout editing, no charts or notes yet.
 
