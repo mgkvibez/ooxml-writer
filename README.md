@@ -45,6 +45,13 @@ Text is escaped on the way in (`<`, `>`, `&`), so an edit cannot corrupt the par
 longer matched its own output, so the text read back empty. The padded-text test caught it; the reader now accepts
 attributes on `<a:t>`.
 
+## Tables
+
+`table_cells` reads every table as rows of flattened cell text, and `set_table_cell_text` writes one cell while keeping
+its run properties: the new text lands in the first run and the rest are emptied rather than deleted, because deleting a
+run drops the formatting the cell depends on. Everything outside the cell stays byte-identical, which the tests assert by
+comparing the whole part against the original with only that one string changed.
+
 ## Status
 
 **Stage 0: scaffolding.** `OoxmlPackage` opens a package, exposes parts, replaces one, and saves with untouched parts
@@ -52,7 +59,7 @@ byte-identical. `replace_text_run` edits the nth `<a:t>` run of a slide and leav
 18 tests: round-trip identity, order preservation, targeted run replacement, missing-part refusal, malformed package
 refusal, and `diff` naming changed parts.
 
-**Tests:** 18
+**Tests:** 25
 
 No schema validation, no shape or layout editing, no charts or notes yet.
 
