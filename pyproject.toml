@@ -8,7 +8,9 @@ license = { text = "MIT" }
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6"]
+# python-pptx is a *test* dependency and only that: the library itself has none. The tests open the saved deck with it
+# so an independent reader confirms the edits, which is the point of the exercise; CI has to be able to run them.
+dev = ["pytest>=8", "ruff>=0.6", "python-pptx>=0.6.21"]
 
 [build-system]
 requires = ["setuptools>=68"]
