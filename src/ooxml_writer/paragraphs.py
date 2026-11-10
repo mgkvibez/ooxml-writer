@@ -155,6 +155,55 @@ def set_first_matching_paragraph(
     return replace_paragraph_text(package, part_name, paragraph.index, text)
 
 
+def replace_phrase(package: OoxmlPackage, part_name: str, needle: str, text: str) -> Optional[int]:
+    """Replace a phrase wherever it sits, without destroying the rest of the paragraph.
+
+    This is the operation `str.replace` cannot do and `replace_paragraph_text` is too blunt for: PowerPoint
+    splits `Hello world` into three runs because each carries its own formatting, and a phrase-level edit must
+    change exactly
+    the characters of the phrase while the run properties either side survive.
+
+    Returns the index of the paragraph that was changed, or None when the phrase is absent.
+
+    The replacement inherits the formatting of the run the phrase *starts* in, which is the convention every
+    rich-text editor uses. A phrase that starts and ends in the same run is a substring splice, the common
+    case and the cheap one.
+    """
+    xml = package.text(part_name)
+    for paragraph in paragraphs(xml):
+        at = paragraph.text.find(needle)
+        if at < 0:
+            continue
+        end_of_phrase = at + len(needle)
+        boundaries = []
+        cursor = 0
+        for run in paragraph.runs:
+            boundaries.append((cursor, cursor + len(run.text), run))
+            cursor += len(run.text)
+
+        affected = [entry for entry in boundaries if entry[0] < end_of_phrase and entry[1] > at]
+        if not affected:
+            return None
+
+        # rewrite from the last run backwards so earlier offsets in the original xml stay valid
+        updated = xml
+        for start_of_run, end_of_run, run in reversed(affected):
+            if run.start == run.end:
+                continue  # an empty run holds no text and needs no edit
+            head = run.text[: max(0, at - start_of_run)]
+            tail = run.text[max(0, end_of_phrase - start_of_run) :]
+            middle = text if start_of_run <= at else ""
+            new_text = head + middle + tail
+            replacement = escape_xml(new_text)
+            updated = updated[: run.start] + replacement + updated[run.end :]
+            if new_text != new_text.strip():
+                updated = _ensure_space_preserve(updated, run.start)
+
+        package.replace(part_name, updated)
+        return paragraph.index
+    return None
+
+
 def all_text(package: OoxmlPackage, part_name: str) -> Iterable[str]:
     """Every paragraph of a part, in document order."""
     for paragraph in paragraphs(package.text(part_name)):
