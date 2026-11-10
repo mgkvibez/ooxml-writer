@@ -87,6 +87,26 @@ Three decisions worth stating:
 Ambiguity is refused too: two shapes that both answer to a name (or to it ignoring case) raise rather than guess, because
 picking one silently is how a title gets overwritten by its subtitle.
 
+## The fidelity scoreboard, and what it refuses to claim
+
+`ooxml_writer.fidelity` counts every element in every part before and after an edit, by the prefix the part itself
+declares, and names what went:
+
+```bash
+python -m ooxml_writer.fidelity deck.pptx
+# 41 of 41 parts kept their structure, 2643 elements counted in the original.
+```
+
+After collapsing a three-bullet body into one sentence it prints `ppt/slides/slide1.xml  structure changed -2 a:p -2 a:r
+-2 a:t`, which is exactly what that edit removes. Three limits are built into the report rather than hidden behind it:
+
+1. It measures structure, not appearance. A shape moved, a colour changed, a sentence rewritten in place: identical
+   census.
+2. That blind spot is pinned by tests, in both directions. Rewriting a title's text changes the bytes and changes no
+   element, and the scoreboard says so; the round-trip report is the one that notices.
+3. Only two readings are compared, so an element that was replaced one for one reads as preserved. Counting cannot see
+   identity, only name and number.
+
 ## A real deck, not a fixture written by the tests
 
 `tests/fixtures/deck.pptx` is a two-slide deck built with python-pptx, committed as bytes so the suite needs no
@@ -106,7 +126,7 @@ run-level replacement, phrase-level replacement, tables in both namespaces, and 
 python-pptx deck with a per-part byte diff. The diff is now a published report: all 41 parts of that deck come back
 identical, in their original archive order.
 
-**Tests:** 60
+**Tests:** 72
 
 No schema validation, no layout or geometry editing (a shape's position and size are untouched), no charts, notes or media
 replacement yet, and no corpus of decks
@@ -124,7 +144,8 @@ pip install -e ".[dev]" && ruff check . && python -m pytest -q
 3. **Shape and text-box editing** (done): list a slide's shapes, edit one by name, refuse the ambiguous and the ones
    with no text body.
 4. **Round-trip corpus**: real decks from real tools, saved and re-opened, with a per-part diff report.
-5. **Fidelity scoreboard**: elements preserved vs lost, named individually, published.
+5. **Fidelity scoreboard** (started): every part's element census before and after an edit, differences named. Not yet
+   published as a table against a corpus, because the corpus (item 4) is still only the one python-pptx deck.
 
 ## Non-goals
 
