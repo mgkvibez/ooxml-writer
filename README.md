@@ -34,6 +34,13 @@ byte-identical.** That test is in this repository.
 - Phrase replacement: `replace_phrase` changes exactly the characters of a phrase wherever it sits, even when PowerPoint
   split it across three runs, and leaves the runs either side of it untouched. `replace_paragraph_text` is the blunt
   version (one paragraph becomes one run); this is the one a find-and-replace in a deck actually needs.
+- Round-trip report: `python -m ooxml_writer.roundtrip deck.pptx` saves the deck, opens the saved file again, and prints
+  every part with what happened to it: identical with its size, changed with both sizes, added, or dropped. It exits
+  non-zero if anything differs, so it works as a gate rather than as a reassurance.
+
+  Archive order is reported separately, and that is not pedantry. A package whose parts are all byte-identical but written
+  in a different order passes every content check while producing two archives that a person comparing them sees as
+  entirely different files. The report names that case instead of hiding it behind 41 "identical" lines.
 
 ### The trap this project exists for
 
@@ -77,9 +84,10 @@ table, and a clean zip whose only changed part is `ppt/slides/slide1.xml`.
 
 **Stage 1: you can edit a real deck and PowerPoint's own tooling still reads it.** Package round-trip, paragraph reading,
 run-level replacement, phrase-level replacement, and tables in both namespaces, all on a real python-pptx deck with a
-per-part byte diff.
+per-part byte diff. The diff is now a published report: all 41 parts of that deck come back identical, in their original
+archive order.
 
-**Tests:** 36
+**Tests:** 46
 
 No schema validation, no shape or layout editing, no charts, notes or media replacement yet, and no corpus of decks
 written by PowerPoint itself (the fixture is python-pptx, which is honest about its scope: a deck saved by PowerPoint
