@@ -68,6 +68,25 @@ uses `<w:tbl>`/`<w:tr>`/`<w:tc>` with `<w:r><w:t>` runs; DrawingML, which every 
 back reuses it, so a cell edit stays DrawingML. The old code wrote `<w:r>` into a PowerPoint table, which is exactly the
 kind of file that makes PowerPoint offer to repair your presentation.
 
+## Shapes, addressed by the name on screen
+
+`shapes(xml)` lists what a slide contains as a person sees it: `Title 1`, `Content Placeholder 2`, `TextBox 3`, each
+with its id, its paragraph count and its text one line per paragraph. `set_shape_text(package, part, name, text)` writes
+one of them.
+
+Three decisions worth stating:
+
+1. **By name, not by index.** `replace_paragraph_text` already works by index, which is what a program has and what a
+   person does not. The name in the selection pane is the thing a caller can actually state.
+2. **A body of several paragraphs becomes one paragraph.** Replacing three bullets with a sentence and leaving two empty
+   `<a:p>` elements behind looks broken, and an empty paragraph still draws its bullet glyph. The extra elements are
+   removed rather than emptied, which costs only the run properties of paragraphs that are not being kept.
+3. **A shape with no text body is an error, not a no-op.** Asking to set a picture's text is asking the wrong question,
+   and `ShapeError` says so instead of silently changing nothing.
+
+Ambiguity is refused too: two shapes that both answer to a name (or to it ignoring case) raise rather than guess, because
+picking one silently is how a title gets overwritten by its subtitle.
+
 ## A real deck, not a fixture written by the tests
 
 `tests/fixtures/deck.pptx` is a two-slide deck built with python-pptx, committed as bytes so the suite needs no
@@ -83,13 +102,14 @@ table, and a clean zip whose only changed part is `ppt/slides/slide1.xml`.
 ## Status
 
 **Stage 1: you can edit a real deck and PowerPoint's own tooling still reads it.** Package round-trip, paragraph reading,
-run-level replacement, phrase-level replacement, and tables in both namespaces, all on a real python-pptx deck with a
-per-part byte diff. The diff is now a published report: all 41 parts of that deck come back identical, in their original
-archive order.
+run-level replacement, phrase-level replacement, tables in both namespaces, and shape text by name, all on a real
+python-pptx deck with a per-part byte diff. The diff is now a published report: all 41 parts of that deck come back
+identical, in their original archive order.
 
-**Tests:** 46
+**Tests:** 60
 
-No schema validation, no shape or layout editing, no charts, notes or media replacement yet, and no corpus of decks
+No schema validation, no layout or geometry editing (a shape's position and size are untouched), no charts, notes or media
+replacement yet, and no corpus of decks
 written by PowerPoint itself (the fixture is python-pptx, which is honest about its scope: a deck saved by PowerPoint
 carries extension lists and vendor parts this fixture does not).
 
@@ -101,7 +121,8 @@ pip install -e ".[dev]" && ruff check . && python -m pytest -q
 
 1. **Byte-faithful package** (done).
 2. **Run-level editing** (done): replace a whole paragraph, or replace a phrase and keep the runs either side.
-3. **Shape and text-box editing** without touching unrelated XML.
+3. **Shape and text-box editing** (done): list a slide's shapes, edit one by name, refuse the ambiguous and the ones
+   with no text body.
 4. **Round-trip corpus**: real decks from real tools, saved and re-opened, with a per-part diff report.
 5. **Fidelity scoreboard**: elements preserved vs lost, named individually, published.
 
